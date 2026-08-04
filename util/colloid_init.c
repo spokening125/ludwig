@@ -20,7 +20,14 @@
  *  Options:
  *    -a sets a0 the input radius
  *    -h sets ah the hydrodynamic radius
+ *      (if -h is not provided, ah defaults to a0)
  *    -v sets the volume fraction 0 < vf < 1.0 (usually < 0.5)
+ *    -size sets ntotal[X], ntotal[Y], ntotal[Z] together (positive integer)
+ *    -x, -y, -z set ntotal[X], ntotal[Y], ntotal[Z] (positive integers)
+ *    -X, -Y, -Z set periodic[X], periodic[Y], periodic[Z] (0 or 1)
+ *    -wx, -wy, -wz set uniform angular velocity components for all colloids
+ *      (if any is set, all colloids have isfixedw = 1)
+ *    -seed sets the random number seed used for colloid placement
  *
  *  Edinburgh Soft Matter and Statistical Physics Group and
  *  Edinburgh Parallel Computing Centre
@@ -34,6 +41,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #include "../src/colloid.h"
 #include "../src/pe.h"
@@ -64,7 +72,7 @@ double v_lj(double r, double rc);
 
 int main(int argc, char ** argv) {
 
-  int ntotal[3] = {32, 32, 32};        /* Total system size (cf. input) */
+  int ntotal[3] = {128, 128, 128};        /* Total system size (cf. input) */
   int periodic[3] = {1, 1, 1};         /* 0 = wall, 1 = periodic */
   int file_format = ASCII;
 
@@ -74,20 +82,29 @@ int main(int argc, char ** argv) {
   int optind;
 
   const double a0_default = 2.3;   /* Input radius */
-  const double ah_default = 2.3;   /* Hydrodynamic radius */ 
-  const double vf_default = 0.02;  /* Volume fraction */
+  const double vf_default = 0.1;  /* Volume fraction */
   const double dh_default = 0.5;   /* "grace' distance */
   const double q0_default = 0.0;   /* positive charge */ 
   const double q1_default = 0.0;   /* negative charge */
+  const double wx_default = 0.0;       /* angular velocity x component */
+  const double wy_default = 0.0;       /* angular velocity y component */
+  const double wz_default = 0.0;       /* angular velocity z component */
+  const int seed_default = 7361237;    /* random number seed */
 
   /* At the moment, three quantities can come from the command line */
 
   double a0 = a0_default;
-  double ah = ah_default;
+  double ah = 0.0;
   double vf = vf_default;
   double dh = dh_default;
   double q0 = q0_default;
   double q1 = q1_default;
+  double wx = wx_default;
+  double wy = wy_default;
+  double wz = wz_default;
+  int seed = seed_default;
+  int has_ah_input = 0;
+  int has_w_input = 0;
 
   colloid_state_t * state;
   pe_t * pe;
@@ -96,17 +113,59 @@ int main(int argc, char ** argv) {
   MPI_Init(&argc, &argv);
 
   pe_create(MPI_COMM_WORLD, PE_QUIET, &pe);
-  ran_init(pe);
 
   /* Check the command line, then parse the meta data information,
    * and sort out the data file name  */
 
   if ((argc-1) % 2 != 0) {
-    printf("Usage: %s [-a a0] [-h ah] [-v volume-fraction]\n", argv[0]);
+    printf("Usage: %s [-a a0] [-h ah] [-v volume-fraction] "
+           "[-size nxyz] [-x nx] [-y ny] [-z nz] [-X px] [-Y py] [-Z pz] "
+           "[-wx wx] [-wy wy] [-wz wz] [-seed seed]\n", argv[0]);
     exit(EXIT_FAILURE);
   }
 
   for (optind = 1; optind < argc && argv[optind][0] == '-'; optind += 2) {
+    /* by spokening125 26/3/26 */
+    if (strcmp(argv[optind], "-seed") == 0) {
+      seed = atoi(argv[optind+1]);
+      printf("%s: option -seed sets seed = %d\n", argv[0], seed);
+      continue;
+    }
+
+    /* by spokening125 26/3/26 */
+    if (strcmp(argv[optind], "-size") == 0) {
+      ntotal[X] = atoi(argv[optind+1]);
+      ntotal[Y] = atoi(argv[optind+1]);
+      ntotal[Z] = atoi(argv[optind+1]);
+      printf("%s: option -size sets ntotal[X,Y,Z] = %d\n", argv[0],
+             ntotal[X]);
+      continue;
+    }
+
+    /* by spokening125 26/3/26 */
+    if (strcmp(argv[optind], "-wx") == 0) {
+      wx = atof(argv[optind+1]);
+      has_w_input = 1;
+      printf("%s: option -wx sets wx = %f\n", argv[0], wx);
+      continue;
+    }
+
+    /* by spokening125 26/3/26 */
+    if (strcmp(argv[optind], "-wy") == 0) {
+      wy = atof(argv[optind+1]);
+      has_w_input = 1;
+      printf("%s: option -wy sets wy = %f\n", argv[0], wy);
+      continue;
+    }
+
+    /* by spokening125 26/3/26 */
+    if (strcmp(argv[optind], "-wz") == 0) {
+      wz = atof(argv[optind+1]);
+      has_w_input = 1;
+      printf("%s: option -wz sets wz = %f\n", argv[0], wz);
+      continue;
+    }
+
     switch (argv[optind][1]) {
     case 'a':
       a0 = atof(argv[optind+1]);
@@ -114,18 +173,71 @@ int main(int argc, char ** argv) {
       break;
     case'h':
       ah = atof(argv[optind+1]);
+      has_ah_input = 1;
       printf("%s: option -h sets ah = %f\n", argv[0], ah);
       break;
     case 'v':
       vf = atof(argv[optind+1]);
       printf("%s: option -v sets vf = %f\n", argv[0], vf);
       break;
+    case 'x':
+      ntotal[X] = atoi(argv[optind+1]);
+      /* by spokening125 26/3/26 */
+      printf("%s: option -x sets ntotal[X] = %d\n", argv[0], ntotal[X]);
+      break;
+    case 'y':
+      ntotal[Y] = atoi(argv[optind+1]);
+      /* by spokening125 26/3/26 */
+      printf("%s: option -y sets ntotal[Y] = %d\n", argv[0], ntotal[Y]);
+      break;
+    case 'z':
+      ntotal[Z] = atoi(argv[optind+1]);
+      /* by spokening125 26/3/26 */
+      printf("%s: option -z sets ntotal[Z] = %d\n", argv[0], ntotal[Z]);
+      break;
+    case 'X':
+      periodic[X] = atoi(argv[optind+1]);
+      /* by spokening125 26/3/26 */
+      printf("%s: option -X sets periodic[X] = %d\n", argv[0], periodic[X]);
+      break;
+    case 'Y':
+      periodic[Y] = atoi(argv[optind+1]);
+      /* by spokening125 26/3/26 */
+      printf("%s: option -Y sets periodic[Y] = %d\n", argv[0], periodic[Y]);
+      break;
+    case 'Z':
+      periodic[Z] = atoi(argv[optind+1]);
+      /* by spokening125 26/3/26 */
+      printf("%s: option -Z sets periodic[Z] = %d\n", argv[0], periodic[Z]);
+      break;
     default:
       fprintf(stderr, "Unrecognised option: %s\n", argv[optind]);
-      fprintf(stderr, "Usage: %s [-ahv]\n", argv[0]);
+      fprintf(stderr, "Usage: %s [-a a0] [-h ah] [-v volume-fraction] "
+              "[-size nxyz] [-x nx] [-y ny] [-z nz] [-X px] [-Y py] [-Z pz] "
+              "[-wx wx] [-wy wy] [-wz wz] [-seed seed]\n", argv[0]);
       exit(EXIT_FAILURE);
     }   
   }
+
+  /* by spokening125 26/3/26 */
+  if (ntotal[X] <= 0 || ntotal[Y] <= 0 || ntotal[Z] <= 0) {
+    fprintf(stderr, "Error: -x, -y, -z must be positive integers.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* by spokening125 26/3/26 */
+  if ((periodic[X] != 0 && periodic[X] != 1) ||
+      (periodic[Y] != 0 && periodic[Y] != 1) ||
+      (periodic[Z] != 0 && periodic[Z] != 1)) {
+    fprintf(stderr, "Error: -X, -Y, -Z must be 0 (wall) or 1 (periodic).\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if (has_ah_input == 0) {
+    ah = a0;
+  }
+
+  ran_init_seed(pe, seed);
 
 
   /* This program is intended to be serial */
@@ -155,6 +267,14 @@ int main(int argc, char ** argv) {
     state[n].rng = 1 + n;
     state[n].bc  = COLLOID_BC_BBL;
     state[n].shape = COLLOID_SHAPE_SPHERE;
+
+    /* by spokening125 26/3/26 */
+    if (has_w_input) {
+      state[n].w[X] = wx;
+      state[n].w[Y] = wy;
+      state[n].w[Z] = wz;
+      state[n].isfixedw = 1;
+    }
   }
 
   if (vf < 0.35) {

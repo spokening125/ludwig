@@ -1,15 +1,20 @@
 ##############################################################################
 #
-#  unix-mpicc-default.mk
+#  unix-gcc-default.mk
 #
-#  Compile for parallel execution assuming an mpi compiler
-#  wrapper "mpicc" is available.
+#  A most simple serial build using gcc only.
 #
 ##############################################################################
 
-BUILD   = parallel
+BUILD   = serial
 MODEL   = -D_D3Q19_
 TARGET  =
 
-CC      = mpicc -fopenmp
-CFLAGS  = -O2 -g -DNDEBUG
+CC      = gcc
+CFLAGS  = -O -g -Wall
+
+AR      = ar
+ARFLAGS = -cru
+LDFLAGS =
+
+LAUNCH_MPIRUN_CMD =
