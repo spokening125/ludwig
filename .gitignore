@@ -1,1 +1,26 @@
 .DS_Store
+
+# Build outputs
+*.o
+*.a
+*.exe
+*.out
+
+# Top-level build products
+src/Ludwig.exe
+src/libludwig.a
+target/libtarget.a
+tests/unit/a.out
+
+# mpi_s build products
+mpi_s/libmpi.a
+
+# Utility executables built from util/*.c
+util/capillary
+util/coll_squ_subgrid_init
+util/extract
+util/extract_colloids
+util/multi_poly_init
+util/multi_squ_poly_init
+util/polarizer
+util/colloid_init
