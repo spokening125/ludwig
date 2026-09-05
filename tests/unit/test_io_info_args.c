@@ -53,7 +53,7 @@ int test_io_info_args_default(void) {
 
   /* If the size of the struct changes, the tests need updating */
 
-  assert(sizeof(io_info_args_t) == (2*sizeof(io_options_t) + 4*sizeof(int)));
+  assert(sizeof(io_info_args_t) == (2*sizeof(io_options_t) + 5*sizeof(int)));
 
   assert(args.input.mode  == io_mode_default());
   assert(args.output.mode == io_mode_default());
@@ -61,6 +61,7 @@ int test_io_info_args_default(void) {
   assert(args.grid[1]     == 1);
   assert(args.grid[2]     == 1);
   assert(args.iofreq      == 0);
+  assert(args.ioinitial   == 0);
 
   if (args.input.mode != 0) ifail += 1;
 

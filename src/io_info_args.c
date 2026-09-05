@@ -30,7 +30,8 @@ io_info_args_t io_info_args_default(void) {
   io_info_args_t args = {.input  = io_options_default(),
 			 .output = io_options_default(),
 			 .grid   = {1, 1, 1},
-			 .iofreq = 0};
+                         .iofreq = 0,
+                         .ioinitial = 0};
   return args;
 }
 

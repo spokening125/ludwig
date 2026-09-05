@@ -42,7 +42,7 @@ else
 MY_BUILD = "serial version"
 
 MPI_INC_PATH  = -I$(ROOT_DIR)./mpi_s
-MPI_LIB_PATH  = -L$(ROOT_DIR)./mpi_s
-MPI_LIB       = -lmpi
+MPI_LIB_PATH  =
+MPI_LIB       = $(ROOT_DIR)/mpi_s/libmpi.a
 
 endif

@@ -21,6 +21,7 @@ int test_io_info_args_rt_input(pe_t * pe);
 int test_io_info_args_rt_output(pe_t * pe);
 int test_io_info_args_rt_iogrid(pe_t * pe);
 int test_io_info_args_rt_iofreq(pe_t * pe);
+int test_io_info_args_rt_ioinitial(pe_t * pe);
 
 /*****************************************************************************
  *
@@ -36,6 +37,7 @@ int test_io_info_args_rt_suite(void) {
 
   test_io_info_args_rt_iogrid(pe);
   test_io_info_args_rt_iofreq(pe);
+  test_io_info_args_rt_ioinitial(pe);
 
   test_io_info_args_rt_output(pe);
   test_io_info_args_rt_input(pe);
@@ -95,7 +97,6 @@ int test_io_info_args_rt(pe_t * pe) {
 
   return ifail;
 }
-
 /*****************************************************************************
  *
  *  test_io_info_args_rt_input
@@ -148,7 +149,6 @@ int test_io_info_args_rt_input(pe_t * pe) {
 
   return ifail;
 }
-
 /*****************************************************************************
  *
  *  test_io_info_args_rt_output
@@ -289,6 +289,50 @@ int test_io_info_args_rt_iofreq(pe_t * pe) {
     ifail = io_info_args_rt_iofreq(rt, RT_FATAL, right, &iofreq);
     assert(ifail == 0);
     assert(iofreq == 100);
+  }
+
+  rt_free(rt);
+
+  return ifail;
+}
+
+/*****************************************************************************
+ *
+ *  test_io_info_args_rt_ioinitial
+ *
+ *****************************************************************************/
+
+int test_io_info_args_rt_ioinitial(pe_t * pe) {
+
+  int ifail = 0;
+  rt_t * rt = NULL;
+
+  rt_create(pe, &rt);
+
+  {
+    int ioinitial = 0;
+    ifail = io_info_args_rt_ioinitial(rt, RT_FATAL, "missing_io_initial",
+                                      &ioinitial);
+    assert(ifail == 0);
+    assert(ioinitial == 0);
+  }
+
+  {
+    int ioinitial = 0;
+    rt_add_key_value(rt, "yes_io_initial", "yes");
+    ifail = io_info_args_rt_ioinitial(rt, RT_FATAL, "yes_io_initial",
+                                      &ioinitial);
+    assert(ifail == 0);
+    assert(ioinitial == 1);
+  }
+
+  {
+    int ioinitial = 1;
+    rt_add_key_value(rt, "no_io_initial", "off");
+    ifail = io_info_args_rt_ioinitial(rt, RT_FATAL, "no_io_initial",
+                                      &ioinitial);
+    assert(ifail == 0);
+    assert(ioinitial == 0);
   }
 
   rt_free(rt);

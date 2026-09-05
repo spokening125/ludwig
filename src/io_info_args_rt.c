@@ -76,6 +76,14 @@ int io_info_args_rt(rt_t * rt, rt_enum_t lv, const char * stub,
     io_info_args_rt_iofreq(rt, lv, key, &args->iofreq);
   }
 
+  {
+    char key[BUFSIZ] = {0};
+
+    sprintf(key, "%s_io_initial", stub);
+    io_info_args_rt_ioinitial(rt, lv, "default_io_initial", &args->ioinitial);
+    io_info_args_rt_ioinitial(rt, lv, key, &args->ioinitial);
+  }
+
   return 0;
 }
 
@@ -205,4 +213,46 @@ int io_info_args_rt_iofreq(rt_t * rt, rt_enum_t lv, const char * key,
   }
 
   return ifail;
+}
+
+/*****************************************************************************
+ *
+ *  io_info_args_rt_ioinitial
+ *
+ *  Obtain whether initial output is requested.
+ *
+ *****************************************************************************/
+
+int io_info_args_rt_ioinitial(rt_t * rt, rt_enum_t lv, const char * key,
+			      int * ioinitial) {
+
+  int key_present = 0;
+  char value[BUFSIZ] = {0};
+
+  assert(rt);
+  assert(key);
+  assert(ioinitial);
+
+  key_present = rt_string_parameter(rt, key, value, BUFSIZ);
+
+  if (key_present) {
+    if (strcmp(value, "Yes") == 0) *ioinitial = 1;
+    else if (strcmp(value, "yes") == 0) *ioinitial = 1;
+    else if (strcmp(value, "1") == 0) *ioinitial = 1;
+    else if (strcmp(value, "on") == 0) *ioinitial = 1;
+    else if (strcmp(value, "true") == 0) *ioinitial = 1;
+    else if (strcmp(value, "No") == 0) *ioinitial = 0;
+    else if (strcmp(value, "no") == 0) *ioinitial = 0;
+    else if (strcmp(value, "0") == 0) *ioinitial = 0;
+    else if (strcmp(value, "off") == 0) *ioinitial = 0;
+    else if (strcmp(value, "false") == 0) *ioinitial = 0;
+    else {
+      rt_vinfo(rt, lv, "I/O initial flag key present but invalid\n");
+      rt_vinfo(rt, lv, "key: %s\n", key);
+      rt_vinfo(rt, lv, "value: %s\n", value);
+      rt_fatal(rt, lv, "Please use yes/no, on/off, true/false, or 1/0.\n");
+    }
+  }
+
+  return 0;
 }

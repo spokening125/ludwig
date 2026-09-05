@@ -517,6 +517,43 @@ void ludwig_run(const char * inputfile) {
   ludwig_report_statistics(ludwig, 0);
   ludwig_report_momentum(ludwig);
 
+  if (ludwig->phi && ludwig->phi->opts.iodata.ioinitial) {
+      io_event_t event = {0};
+      pe_info(ludwig->pe, "Writing initial phi file.\n");
+      field_io_write(ludwig->phi, 0, &event);
+    }
+
+  if (ludwig->p && ludwig->p->opts.iodata.ioinitial) {
+      io_event_t event = {0};
+      pe_info(ludwig->pe, "Writing initial p file.\n");
+      field_io_write(ludwig->p, 0, &event);
+    }
+
+  if (ludwig->q && ludwig->q->opts.iodata.ioinitial) {
+      io_event_t event = {0};
+      pe_info(ludwig->pe, "Writing initial q file.\n");
+      io_replace_values(ludwig->q, ludwig->map, MAP_COLLOID, 0.00001);
+      field_io_write(ludwig->q, 0, &event);
+    }
+
+  if (ludwig->psi && ludwig->psi->psi->opts.iodata.ioinitial) {
+      pe_info(ludwig->pe, "Writing initial electrokinetic data.\n");
+      psi_io_write(ludwig->psi, 0);
+    }
+
+  if (ludwig->hydro) {
+    if (ludwig->hydro->rho->opts.iodata.ioinitial) {
+        io_event_t event = {0};
+        pe_info(ludwig->pe, "Writing initial rho file.\n");
+        field_io_write(ludwig->hydro->rho, 0, &event);
+      }
+    if (ludwig->hydro->u->opts.iodata.ioinitial) {
+        io_event_t event = {0};
+        pe_info(ludwig->pe, "Writing initial velocity file.\n");
+        field_io_write(ludwig->hydro->u, 0, &event);
+      }
+    }
+
   /* Main time stepping loop */
 
   pe_info(ludwig->pe, "\n");

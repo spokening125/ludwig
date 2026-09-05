@@ -38,6 +38,7 @@ struct io_info_args_s {
   io_options_t output;           /* Output mode, format, ... */
   int grid[3];                   /* Input and output have same grid */
   int iofreq;                    /* Output only. Frequency (every n steps) */
+  int ioinitial;                 /* Output at initial time */
 };
 
 io_info_args_t io_info_args_default(void);

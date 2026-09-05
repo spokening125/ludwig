@@ -29,5 +29,7 @@ int io_info_args_rt_iogrid(rt_t * rt, rt_enum_t lv, const char * key,
 			   int iogrid[3]);
 int io_info_args_rt_iofreq(rt_t * rt, rt_enum_t lv, const char * key,
 			   int * iofreq);
+int io_info_args_rt_ioinitial(rt_t * rt, rt_enum_t lv, const char * key,
+			      int * ioinitial);
 
 #endif
