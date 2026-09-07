@@ -1186,6 +1186,30 @@ int bbl_update_colloid_default(bbl_t * bbl, wall_t * wall, colloid_t * pc,
     xb[3+ia] += pc->tc0[ia];
   }
 
+  /* Modification (2026-09-06): if the angular velocity is held fixed
+   * (isfixedw), the bounce-back in bbl_pass2() uses the unchanged w.
+   * The implicit solve must therefore treat w as a known constant:
+   * move the rotational drag zeta_tr*w_old to the right-hand side,
+   * decouple the rotation rows and return w_old exactly. Solving the
+   * full 6x6 and then discarding the rotational solution left v_new
+   * inconsistent with the bounce-back, injecting a spurious linear
+   * momentum -zeta_tr*(w_solved - w_old) every step. */
+
+  if (pc->s.isfixedw) {
+
+    for (ia = 0; ia < 3; ia++) {
+      for (int ib = 0; ib < 3; ib++) {
+        /* rotational drag with the actual (fixed) w to the RHS */
+        xb[ia] -= a[ia][3+ib]*pc->s.w[ib];
+        a[ia][3+ib] = 0.0;
+        a[3+ib][ia] = 0.0;
+        /* rotation rows: identity, so the solve returns w_old */
+        a[3+ia][3+ib] = (ia == ib) ? 1.0 : 0.0;
+      }
+      xb[3+ia] = pc->s.w[ia];
+    }
+  }
+
   iret = bbl_6x6_gaussian_elimination(a, xb);
 
   return iret;
